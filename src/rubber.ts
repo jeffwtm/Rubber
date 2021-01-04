@@ -384,6 +384,7 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
             "asset_compiler_path": "${runtimeLocation}\\bin\\GMAssetCompiler.exe",
             "lib_compatibility_path": "${runtimeLocation}\\lib\\compatibility.zip",
             "runner_path": "${runtimeLocation}\\windows\\Runner.exe",
+            "x64_runner_path": "${runtimeLocation}\\windows\\x64\\Runner.exe",
             "webserver_path": "${runtimeLocation}\\bin\\GMWebServer.exe",
             "html5_runner_path": "${runtimeLocation}\\html5\\scripts.html5.zip",
             "adb_exe_path": "platform-tools\\adb.exe",
