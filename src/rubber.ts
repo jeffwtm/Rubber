@@ -11,7 +11,7 @@ import { EventEmitter } from "events";
 import { uuid } from "./utils/uuid";
 
 // TODO: PLATFORM INCOMPATIBILITY
-const tempFolder = process.env.TEMP;
+let tempFolder = process.env.TEMP;
 const appdataFolder = process.env.APPDATA;
 
 export interface IRubberOptions {
@@ -46,6 +46,9 @@ export interface IRubberOptions {
     /** Alternate GameMakerStudio2 ProgramData Directory */
     gamemakerDataLocation?: string;
 
+    /** Override temp folder location */
+    tempFolder?: string;
+
     /** Target Device Config File Directory */
     deviceConfigFileLocation?: string;
 
@@ -75,6 +78,8 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
 
     // Choose a specific runtime or use the active one if left blank
     const theRuntime = options.theRuntime ? options.theRuntime : "";
+
+    tempFolder = options.tempFolder ? options.tempFolder : tempFolder;
 
     // Build component for checking later.
     let component = "";
@@ -305,6 +310,7 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
         await fse.mkdirs(join(buildTempPath, "GMCache"));
         await fse.mkdirs(join(buildTempPath, "GMTemp"));
         await fse.mkdirs(join(buildTempPath, "Output"));
+        await fse.emptyDir(join(buildTempPath, "Output"));
     
         // 2.
         /* There are 3 Files we need to create:
@@ -513,7 +519,8 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
 
         emitter.emit("compileStatus", "Running IGOR\n");
         const exportType = options.build == "test" ? "Run" : (options.build === "zip" ? defaultPackageKey : "PackageNsis")
-        const igorArgs = ["-options=" + join(buildTempPath, "build.bff"), "--", component, clearRemoteCache ? "Clean" : exportType];
+        const igorArgs = ["-j=8", "-options=" + join(buildTempPath, "build.bff"), "-v", "--", component, clearRemoteCache ? "Clean" : exportType];
+        console.log(join(runtimeLocation, "bin", "Igor.exe"), igorArgs.join(' '));
         const igor = spawn(join(runtimeLocation, "bin", "Igor.exe"), igorArgs);
     
         // !!! #8 todo: store errors here, emit at end.
