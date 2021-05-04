@@ -1,5 +1,5 @@
 {
-	"name": "gamemaker-rubber",
+	"name": "@incominggames/gamemaker-rubber",
 	"version": "3.0.1",
 	"description": "GMS2 project compilation",
 	"main": "out/rubber.js",
