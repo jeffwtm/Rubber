@@ -109,6 +109,7 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
             componentBuild = "Windows.build_module";
             break;
         case "mac":
+            defaultPackageKey = "PackageZip";
             component = "Mac";
             componentBuild = "Mac.build_module";
             requireRemoteClient = true;
