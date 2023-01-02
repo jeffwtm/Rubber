@@ -19,16 +19,20 @@ let cache: ILocalSettings;
  */
 export async function readLocalSetting(key: string, def: string = ""): Promise<string> {
     if (!cache) {
-        // The UM file contains the user's id number.
-        const um = JSON.parse((await fse.readFile(`${process.env.APPDATA}\\GameMakerStudio2\\um.json`)).toString());
-        const userFolder = um.username.substring(0, um.username.indexOf("@")) + "_" + um.userID;
+        const userFolder = await getUserFolder()
         const preferencesLocation = `${process.env.APPDATA}\\GameMakerStudio2\\` + userFolder + `\\local_settings.json`;
         cache = JSON.parse((await fse.readFile(preferencesLocation)).toString());
     }
     return cache[key] || def;
 }
 export async function getUserDir() {
-    const um = JSON.parse((await fse.readFile(`${process.env.APPDATA}\\GameMakerStudio2\\um.json`)).toString());
-    const userFolder = um.username.substring(0, um.username.indexOf("@")) + "_" + um.userID;
+    const userFolder = await getUserFolder()
     return join(`${process.env.APPDATA}`, "GameMakerStudio2", userFolder);
+}
+
+const getUserFolder = async () => {
+    // The UM file contains the user's id number.
+    const um = JSON.parse((await fse.readFile(`${process.env.APPDATA}\\GameMakerStudio2\\um.json`)).toString());
+    const userFolder = (um.username.includes('@') ? um.username.substring(0, um.username.indexOf("@")) : um.username) + "_" + um.userID;
+    return userFolder
 }

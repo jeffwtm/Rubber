@@ -252,7 +252,7 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
         }
         const guid = guid_match[1].replace("{", "").replace("}", "");
         
-        const buildTempPath = join(tempFolder, "gamemaker-rubber", guid);
+        const buildTempPath = join(tempFolder, "gamemaker-rubber", guid, options.platform, options.config || 'default');
         let runtimeLocation = "";
         if (options.runtimeLocation) {
             runtimeLocation = options.runtimeLocation;
@@ -352,7 +352,7 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
             userDir: userDir,
             verbose: (options.verbose === true) ? "True" : "False",
         };
-        await fse.writeFile(join(buildTempPath, "build.bff"), JSON.stringify(buildMeta));
+        await fse.writeFile(join(buildTempPath, "build.bff"), JSON.stringify(buildMeta, undefined, 4));
         
         // b.
         const macros: { [macro: string]: string } = {
@@ -420,7 +420,7 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
             "TempPath": "${UserProfile}\\AppData\\Local",
             "exe_path": options.ea ? "${ProgramFiles}\\GameMaker Studio 2-EA" : "${ProgramFiles}\\GameMaker Studio 2",
         }
-        await fse.writeFile(join(buildTempPath, "macros.json"), JSON.stringify(macros));
+        await fse.writeFile(join(buildTempPath, "macros.json"), JSON.stringify(macros, undefined, 4));
 
         // c.
         /*
@@ -460,7 +460,7 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
             encrypted_password: platform === "ios" ? iosHostMacValues.encrypted_password : (requireRemoteClient && targetOptionValues.encrypted_password ? targetOptionValues.encrypted_password : ""),
             install_dir: platform === "ios" ? iosHostMacValues.install_dir : (requireRemoteClient && targetOptionValues.install_dir ? targetOptionValues.install_dir : "")            
         };
-        await fse.writeFile(join(buildTempPath, "targetoptions.json"), JSON.stringify(targetoptions));
+        await fse.writeFile(join(buildTempPath, "targetoptions.json"), JSON.stringify(targetoptions, undefined, 4));
     
         // f.
         /*
