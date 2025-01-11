@@ -17,10 +17,10 @@ let cache: ILocalSettings;
  * Returns the gamemaker user preferences JSON Object of the current user. This
  * value is cached. This can be used to get their Visual Studio Location
  */
-export async function readLocalSetting(key: string, def: string = ""): Promise<string> {
+export async function readLocalSetting(key: string, def: string = "", userDataFolder?: string): Promise<string> {
     if (!cache) {
-        const userFolder = await getUserFolder()
-        const preferencesLocation = `${process.env.APPDATA}\\GameMakerStudio2\\` + userFolder + `\\local_settings.json`;
+        const userFolder = userDataFolder ?? join(`${process.env.APPDATA}\\GameMakerStudio2\\`, await getUserFolder())
+        const preferencesLocation = join(userFolder, `\\local_settings.json`);
         cache = JSON.parse((await fse.readFile(preferencesLocation)).toString());
     }
     return cache[key] || def;

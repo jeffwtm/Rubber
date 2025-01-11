@@ -46,6 +46,9 @@ export interface IRubberOptions {
     /** Alternate GameMakerStudio2 ProgramData Directory */
     gamemakerDataLocation?: string;
 
+    /** Override default GameMakerStudio2 user data location */
+    userDataLocation?: string;
+
     /** Override temp folder location */
     tempFolder?: string;
 
@@ -288,7 +291,7 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
             }
         }
 
-        const userDir = await getUserDir();
+        const userDir = options.userDataLocation ?? await getUserDir();
         const licensePlist = (await fse.readFile(join(userDir, "licence.plist"))).toString();
         const allowedComponents = (licensePlist.match(/<key>components<\/key>.*?\n.*?<string>(.*?)<\/string>/) as any)[1].split(";");
 
@@ -329,10 +332,11 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
         emitter.emit("compileStatus", "Creating Build Data\n");
         // a.
         const buildMeta: IBuildMeta = {
-            applicationPath: join(options.gamemakerLocation, options.ea ? "GameMakerStudio-EA.exe" : "GameMakerStudio.exe"),
+            applicationPath: join(options.gamemakerLocation, options.ea ? "GameMakerStudio-EA.exe" : "GameMaker.dll"),
             assetCompiler: "",
             compile_output_file_name: join(buildTempPath, "Output", projectName + ".win"),
             config: (options.config) ? options.config : "default",
+            configParents: options.config?.includes("steam_") ? "Default,steam" : "Default,standalone",
             debug: (options.debug !== undefined) ? "True" : "False",
             debuggerPort: (options.debug) ? options.debug.toString() : "6509",
             helpPort: "51290",
@@ -343,11 +347,13 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
             projectName: projectName,
             projectPath: projectFile,
             runtimeLocation: runtimeLocation,
+            SteamIDE: "False",
             steamOptions: join(buildTempPath, "steam_options.yy"),
             targetFile: options.outputPath,
             targetMask,
             targetOptions: join(buildTempPath, "targetoptions.json"),
             tempFolder: join(buildTempPath, "GMTemp"),
+            tempFolderUnmapped: join(buildTempPath, "GMTemp"),
             useShaders: "True",
             userDir: userDir,
             verbose: (options.verbose === true) ? "True" : "False",
@@ -387,8 +393,8 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
             "runtimeBaseLocation": "${system_cache_directory}\\runtimes",
             "runtimeLocation": runtimeLocation,
 
-            "igor_path": "${runtimeLocation}\\bin\\Igor.exe",
-            "asset_compiler_path": "${runtimeLocation}\\bin\\GMAssetCompiler.exe",
+            "igor_path": "${runtimeLocation}\\bin\\igor\\windows\\x64\\Igor.exe",
+            "asset_compiler_path": "${runtimeLocation}\\bin\\assetcompiler\\windows\\x64\\GMAssetCompiler.dll",
             "lib_compatibility_path": "${runtimeLocation}\\lib\\compatibility.zip",
             "runner_path": "${runtimeLocation}\\windows\\Runner.exe",
             "x64_runner_path": "${runtimeLocation}\\windows\\x64\\Runner.exe",
@@ -419,6 +425,34 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
             "UserProfile": "C:\\Users\\${UserProfileName}",
             "TempPath": "${UserProfile}\\AppData\\Local",
             "exe_path": options.ea ? "${ProgramFiles}\\GameMaker Studio 2-EA" : "${ProgramFiles}\\GameMaker Studio 2",
+            
+            "YYLoginURL": "${loginURI}/api/2/login",
+            "YYLogoutURL": "${loginURI}/api/2/logout",
+            "YYLicenseURL": "${loginURI}/api/2/licence.plist",
+            "YYTwoStepURL": "${loginURI}/api/2/two_step",
+            "YYRegisterURL": "${accountsURI}",
+            "YYProductsURL": "${accountsURI}",
+            "YYTokenRefreshURL": "${identity_server}/frontend/refresh",
+            "identity_server": "https://identity.yoyogames.com",
+            "YYInternetAvailabilitySites": "https://www.google.com,https://gamemaker.io,https://gms.yoyogames.com/ReleaseNotes.html",
+            "YYAccountsAvailabilitySites": "https://accounts.yoyogames.com/api/health-check",
+            "YYMarketplaceAvailabilitySites": "https://marketplace.yoyogames.com/api/health-check",
+                    
+            "user_override_directory": "${system_directory}\\User",
+            
+            "LocalizedResources": "",
+            "loginURI": "https://api.yoyogames.com",
+            "marketplaceAPIURI": "https://api.yoyogames.com",
+            "marketplaceURI": "https://marketplace.yoyogames.com",
+            "oauth_opera_server": "https://oauth2.opera-api.com/oauth2/v1/",
+            "oauth_redirect_url": "http://localhost:8889/",
+            
+            "feature_flags_enable": "mqtt,audio-fx,operagx-yyc,intellisense,nullish,login_sso,test",
+            "gmpm_path": "C:/source/YoYoCompilerToolChain/build/Debug/bin/gmpmd.exe",
+            "gxc_scopes": "user+https://api.gmx.dev/gms:read+https://api.gmx.dev/gms:write",
+            "gxc_server": "https://api.gmx.dev/",
+            
+            "accountsURI": "https://gamemaker.io/account",
         }
         await fse.writeFile(join(buildTempPath, "macros.json"), JSON.stringify(macros, undefined, 4));
 
@@ -434,7 +468,7 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
         // d.
         
         const steamOptions: IBuildSteamOptions = {
-            steamsdk_path: await readLocalSetting("machine.Platform Settings.Steam.steamsdk_path"),
+            steamsdk_path: await readLocalSetting("machine.Platform Settings.Steam.steamsdk_path", '', options.userDataLocation),
         };
         await fse.writeFile(join(buildTempPath, "steam_options.yy"), JSON.stringify(steamOptions));
         
@@ -521,8 +555,9 @@ export function compile(options: IRubberOptions, clearRemoteCache: boolean = fal
         emitter.emit("compileStatus", "Running IGOR\n");
         const exportType = options.build == "test" ? "Run" : (options.build === "zip" ? defaultPackageKey : "PackageNsis")
         const igorArgs = ["-j=8", "-options=" + join(buildTempPath, "build.bff"), "-v", "--", component, clearRemoteCache ? "Clean" : exportType];
-        console.log(join(runtimeLocation, "bin", "Igor.exe"), igorArgs.join(' '));
-        const igor = spawn(join(runtimeLocation, "bin", "Igor.exe"), igorArgs);
+        const igorPath = join(runtimeLocation, "bin", "igor", "windows", "x64", "Igor.exe") //todo: don't hardcode these values
+        console.log(igorPath, igorArgs.join(' '));
+        const igor = spawn(igorPath, igorArgs);
     
         // !!! #8 todo: store errors here, emit at end.
         const igorErrors: string[] = [];

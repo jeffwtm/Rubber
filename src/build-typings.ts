@@ -8,6 +8,7 @@ export interface IRuntimeIndex {
 export interface IBuildMeta {
     /** The Configuration to compile with. */
     config: string;
+    configParents?: string;
     /** The Project Name. */
     projectName: string;
     /** The absolute path to your project folder */
@@ -20,10 +21,12 @@ export interface IBuildMeta {
     outputFolder: string;
     /** The absolute path to a temporary folder. */
     tempFolder: string;
+    tempFolderUnmapped?: string;
     /** The absolute path to a `.win` file inside outputFolder. */
     compile_output_file_name: string;
     /** The absolute path to targetoptions.json. */
     targetOptions: string;
+    SteamIDE?: string;
     /** The absolute path to steam_options.yy. */
     steamOptions: string;
     /** The absolute path to macros.json. */
